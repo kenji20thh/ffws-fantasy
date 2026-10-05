@@ -44,12 +44,30 @@ func main() {
 		&models.PlayerRoomStat{},
 		&models.User{},
 		&models.FantasyTeam{},
-		&models.FantasySelection{},
-		&models.FantasyChipUse{},
 		&models.Prediction{},
 		&models.PredictionTeam{},
+
+		// Fantasy card/pack system (see models/fantasy_*.go).
+		&models.FantasyRarity{},
+		&models.FantasyPackType{},
+		&models.FantasyPackRarity{},
+		&models.FantasyPlayerCard{},
+		&models.FantasyPackOpening{},
+		&models.FantasyPackOpeningCard{},
+		&models.FantasyWallet{},
+		&models.FantasyCoinTransaction{},
+		&models.FantasySquad{},
+		&models.FantasySquadPlayer{},
+		&models.FantasySquadPlayerScore{},
+		&models.FantasyExchangeRecipe{},
+		&models.FantasyExchangeRequirement{},
+		&models.FantasyExchangeTransaction{},
 	); err != nil {
 		log.Fatalf("failed to migrate database: %v", err)
+	}
+
+	if err := db.SeedFantasyRarities(database); err != nil {
+		log.Fatalf("failed to seed fantasy rarities: %v", err)
 	}
 
 	router := gin.Default()
@@ -140,17 +158,14 @@ func main() {
 
 		api.GET("/player-leaderboard", playerStatsHandler.GetLeaderboard)
 
-		api.GET("/fantasy/players", fantasyHandler.GetPlayerPool)
 		api.GET("/fantasy/standings", fantasyHandler.GetStandings)
-		api.GET("/fantasy/teams/:id", middleware.OptionalAuth(cfg), fantasyHandler.GetTeamProfile)
+		api.GET("/fantasy/teams/:id", fantasyHandler.GetTeamProfile)
 
 		protected := api.Group("/")
 		protected.Use(middleware.RequireAuth(cfg))
 		{
 			protected.POST("/fantasy/team", fantasyHandler.CreateTeam)
 			protected.GET("/fantasy/team", fantasyHandler.GetMyTeam)
-			protected.GET("/fantasy/team/selections/:dayId", fantasyHandler.GetMySelection)
-			protected.POST("/fantasy/team/selections/:dayId", fantasyHandler.SubmitSelection)
 			protected.GET("/predictions/mine/:dayId", predictionHandler.GetMine)
 			protected.POST("/predictions/:dayId", predictionHandler.Submit)
 

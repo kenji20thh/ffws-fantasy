@@ -13,7 +13,7 @@ export default async function FantasyLeaderboardPage() {
     return (
       <>
         <PageHeader eyebrow="Rankings" title="Fantasy leaderboard">
-          Overall by default, or pick a single day.
+          Fantasy points are paused while the game moves to packs and cards. Teams are listed until scoring returns.
         </PageHeader>
         <div className="mx-auto max-w-4xl px-5 py-10">
           <FantasyLeaderboard tournamentId={t.id} days={days} />

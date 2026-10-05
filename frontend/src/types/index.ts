@@ -218,65 +218,6 @@ export interface FantasyTeam {
   created_at: string;
 }
 
-export interface FantasyPlayerOption {
-  player_id: number;
-  ign: string;
-  role: string;
-  country: string;
-  team_id: number;
-  team_name: string;
-  team_tag: string;
-  fantasy_price: number;
-}
-
-// A pool entry plus the artwork needed by the pick screen (merged client-side from teams/players).
-export interface PoolPlayer extends FantasyPlayerOption {
-  photo_url?: string;
-  team_logo_url?: string;
-}
-
-export interface FantasyPick {
-  player_id: number;
-  is_captain: boolean;
-}
-
-export interface FantasySelectionEntry {
-  id: number;
-  fantasy_team_id: number;
-  tournament_day_id: number;
-  player_id: number;
-  is_captain: boolean;
-  player: Player;
-}
-
-export interface FantasyPlayerDayScore {
-  player_id: number;
-  ign: string;
-  is_captain: boolean;
-  kills: number;
-  first_bloods: number;
-  placement_points: number;
-  base_points: number;
-  final_points: number;
-}
-
-export type FantasyChip = "triple_captain" | "limitless" | "same_team";
-
-export interface FantasyChipUse {
-  chip: FantasyChip;
-  tournament_day_id: number;
-}
-
-export interface FantasySelectionResponse {
-  selections: FantasySelectionEntry[];
-  breakdown: FantasyPlayerDayScore[];
-  total_points: number;
-  lock_time: string | null;
-  locked: boolean;
-  chip?: FantasyChip | ""; // chip played on this day ("" = none)
-  chips_used?: FantasyChipUse[] | null; // every chip this team has played, on any day
-}
-
 export interface FantasyStanding {
   fantasy_team_id: number;
   team_name: string;
@@ -284,16 +225,10 @@ export interface FantasyStanding {
   points: number;
 }
 
+// Public view of a fantasy team. Squads and card collections will be added by later phases.
 export interface FantasyTeamProfile {
   team: FantasyTeam;
-  chip?: FantasyChip | ""; // chip played on this day; not sent while picks are hidden
-  hidden?: boolean; // true while the day is open and you are not the owner
-  locked?: boolean;
-  selections?: FantasySelectionEntry[];
-  breakdown?: FantasyPlayerDayScore[];
-  total_points?: number;
 }
-
 
 export interface TournamentDay {
   id: number;

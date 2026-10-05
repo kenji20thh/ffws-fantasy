@@ -14,10 +14,6 @@ import type {
   TeamStanding,
   Tournament,
   TournamentDay,
-  FantasyPick,
-  FantasyChip,
-  FantasyPlayerOption,
-  FantasySelectionResponse,
   FantasyStanding,
   FantasyTeam,
   FantasyTeamProfile,
@@ -161,11 +157,6 @@ export const getTeamStaff = (teamId: number) =>
   list<TeamStaff>(`/teams/${teamId}/staff`);
 
 /* ---------- fantasy ---------- */
-export const getFantasyPlayerPool = (tournamentId: number, dayId: number) =>
-  list<FantasyPlayerOption>(
-    `/fantasy/players?tournament_id=${tournamentId}&day_id=${dayId}`,
-  );
-
 export const getFantasyStandings = (tournamentId: number, dayId?: number) =>
   list<FantasyStanding>(
     `/fantasy/standings?tournament_id=${tournamentId}${dayId ? `&day_id=${dayId}` : ""}`,
@@ -196,40 +187,8 @@ export const getMyFantasyTeam = (tournamentId: number) =>
     true,
   ).then((r) => r.data);
 
-export const getMyFantasySelection = (tournamentId: number, dayId: number) =>
-  request<{ data: FantasySelectionResponse }>(
-    `/fantasy/team/selections/${dayId}?tournament_id=${tournamentId}`,
-    {},
-    true,
-  ).then((r) => ({
-    ...r.data,
-    selections: r.data.selections ?? [],
-    breakdown: r.data.breakdown ?? [],
-    chips_used: r.data.chips_used ?? [],
-  }));
-
-export const submitFantasySelection = (
-  tournamentId: number,
-  dayId: number,
-  picks: FantasyPick[],
-  chip: FantasyChip | null = null,
-) =>
-  request<{ message: string }>(
-    `/fantasy/team/selections/${dayId}?tournament_id=${tournamentId}`,
-    { method: "POST", body: JSON.stringify({ picks, chip: chip ?? "" }) },
-    true,
-  );
-
-export const getFantasyTeamProfile = (fantasyTeamId: number, dayId?: number) =>
-  request<{ data: FantasyTeamProfile }>(
-    `/fantasy/teams/${fantasyTeamId}${dayId ? `?day_id=${dayId}` : ""}`,
-    {},
-    true, // optional on the server: lets the owner see their own picks before the deadline
-  ).then((r) => ({
-    ...r.data,
-    selections: r.data.selections ?? [],
-    breakdown: r.data.breakdown ?? [],
-  }));
+export const getFantasyTeamProfile = (fantasyTeamId: number) =>
+  one<FantasyTeamProfile>(`/fantasy/teams/${fantasyTeamId}`);
 
 /* ---------- predictions ---------- */
 export const getPredictionStandings = (tournamentId: number, dayId?: number) =>
