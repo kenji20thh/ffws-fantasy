@@ -45,8 +45,6 @@ func main() {
 		&models.User{},
 		&models.Prediction{},
 		&models.PredictionTeam{},
-		&models.PrivateLeague{},
-		&models.PrivateLeagueMember{},
 	); err != nil {
 		log.Fatalf("failed to migrate database: %v", err)
 	}
