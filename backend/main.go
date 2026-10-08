@@ -44,30 +44,14 @@ func main() {
 		&models.PlayerRoomStat{},
 		&models.User{},
 		&models.FantasyTeam{},
+		&models.FantasySelection{},
+		&models.FantasyChipUse{},
 		&models.Prediction{},
 		&models.PredictionTeam{},
-
-		// Fantasy card/pack system (see models/fantasy_*.go).
-		&models.FantasyRarity{},
-		&models.FantasyPackType{},
-		&models.FantasyPackRarity{},
-		&models.FantasyPlayerCard{},
-		&models.FantasyPackOpening{},
-		&models.FantasyPackOpeningCard{},
-		&models.FantasyWallet{},
-		&models.FantasyCoinTransaction{},
-		&models.FantasySquad{},
-		&models.FantasySquadPlayer{},
-		&models.FantasySquadPlayerScore{},
-		&models.FantasyExchangeRecipe{},
-		&models.FantasyExchangeRequirement{},
-		&models.FantasyExchangeTransaction{},
+		&models.PrivateLeague{},
+		&models.PrivateLeagueMember{},
 	); err != nil {
 		log.Fatalf("failed to migrate database: %v", err)
-	}
-
-	if err := db.SeedFantasyRarities(database); err != nil {
-		log.Fatalf("failed to seed fantasy rarities: %v", err)
 	}
 
 	router := gin.Default()
@@ -127,6 +111,13 @@ func main() {
 	fantasyRepo := repository.NewFantasyRepository(database)
 	fantasyHandler := handlers.NewFantasyHandler(fantasyRepo)
 
+	// Teams created before leagues existed get their region from their country.
+	if n, err := fantasyRepo.BackfillRegions(); err != nil {
+		log.Printf("warning: could not backfill fantasy regions: %v", err)
+	} else if n > 0 {
+		log.Printf("assigned a region league to %d existing fantasy teams", n)
+	}
+
 	api := router.Group("/api/v1")
 	{
 		api.POST("/auth/register", middleware.RateLimit(rate.Every(30*time.Second), 3), authHandler.Register)
@@ -158,14 +149,22 @@ func main() {
 
 		api.GET("/player-leaderboard", playerStatsHandler.GetLeaderboard)
 
+		api.GET("/fantasy/players", fantasyHandler.GetPlayerPool)
 		api.GET("/fantasy/standings", fantasyHandler.GetStandings)
-		api.GET("/fantasy/teams/:id", fantasyHandler.GetTeamProfile)
+		api.GET("/fantasy/teams/:id", middleware.OptionalAuth(cfg), fantasyHandler.GetTeamProfile)
 
 		protected := api.Group("/")
 		protected.Use(middleware.RequireAuth(cfg))
 		{
 			protected.POST("/fantasy/team", fantasyHandler.CreateTeam)
 			protected.GET("/fantasy/team", fantasyHandler.GetMyTeam)
+			protected.GET("/fantasy/leagues", fantasyHandler.GetMyLeagues)
+			protected.GET("/fantasy/leagues/:slug/standings", fantasyHandler.GetLeagueStandings)
+			protected.POST("/fantasy/leagues/private", middleware.RateLimit(rate.Every(10*time.Second), 5), fantasyHandler.CreatePrivateLeague)
+			protected.POST("/fantasy/leagues/join", middleware.RateLimit(rate.Every(6*time.Second), 10), fantasyHandler.JoinPrivateLeague)
+			protected.DELETE("/fantasy/leagues/private/:id", fantasyHandler.LeavePrivateLeague)
+			protected.GET("/fantasy/team/selections/:dayId", fantasyHandler.GetMySelection)
+			protected.POST("/fantasy/team/selections/:dayId", fantasyHandler.SubmitSelection)
 			protected.GET("/predictions/mine/:dayId", predictionHandler.GetMine)
 			protected.POST("/predictions/:dayId", predictionHandler.Submit)
 

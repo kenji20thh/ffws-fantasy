@@ -14,6 +14,11 @@ import type {
   TeamStanding,
   Tournament,
   TournamentDay,
+  FantasyPick,
+  FantasyChip,
+  FantasyLeague,
+  FantasyPlayerOption,
+  FantasySelectionResponse,
   FantasyStanding,
   FantasyTeam,
   FantasyTeamProfile,
@@ -157,6 +162,11 @@ export const getTeamStaff = (teamId: number) =>
   list<TeamStaff>(`/teams/${teamId}/staff`);
 
 /* ---------- fantasy ---------- */
+export const getFantasyPlayerPool = (tournamentId: number, dayId: number) =>
+  list<FantasyPlayerOption>(
+    `/fantasy/players?tournament_id=${tournamentId}&day_id=${dayId}`,
+  );
+
 export const getFantasyStandings = (tournamentId: number, dayId?: number) =>
   list<FantasyStanding>(
     `/fantasy/standings?tournament_id=${tournamentId}${dayId ? `&day_id=${dayId}` : ""}`,
@@ -187,8 +197,84 @@ export const getMyFantasyTeam = (tournamentId: number) =>
     true,
   ).then((r) => r.data);
 
-export const getFantasyTeamProfile = (fantasyTeamId: number) =>
-  one<FantasyTeamProfile>(`/fantasy/teams/${fantasyTeamId}`);
+export const getMyFantasySelection = (tournamentId: number, dayId: number) =>
+  request<{ data: FantasySelectionResponse }>(
+    `/fantasy/team/selections/${dayId}?tournament_id=${tournamentId}`,
+    {},
+    true,
+  ).then((r) => ({
+    ...r.data,
+    selections: r.data.selections ?? [],
+    breakdown: r.data.breakdown ?? [],
+    chips_used: r.data.chips_used ?? [],
+  }));
+
+export const submitFantasySelection = (
+  tournamentId: number,
+  dayId: number,
+  picks: FantasyPick[],
+  chip: FantasyChip | null = null,
+) =>
+  request<{ message: string }>(
+    `/fantasy/team/selections/${dayId}?tournament_id=${tournamentId}`,
+    { method: "POST", body: JSON.stringify({ picks, chip: chip ?? "" }) },
+    true,
+  );
+
+/** The leagues the logged-in player is in (own region + Global + private leagues joined). Needs a fantasy team. */
+export const getMyFantasyLeagues = (tournamentId: number) =>
+  request<{ data: FantasyLeague[] | null }>(
+    `/fantasy/leagues?tournament_id=${tournamentId}`,
+    {},
+    true,
+  ).then((r) => r.data ?? []);
+
+/** Leaderboard of one league. The server refuses (403) any region that is not the player's own, and 404s private leagues you're not in. */
+export const getFantasyLeagueStandings = (
+  tournamentId: number,
+  leagueSlug: string,
+  dayId?: number,
+) =>
+  request<{ data: FantasyStanding[] | null }>(
+    `/fantasy/leagues/${encodeURIComponent(leagueSlug)}/standings?tournament_id=${tournamentId}${dayId ? `&day_id=${dayId}` : ""}`,
+    {},
+    true,
+  ).then((r) => r.data ?? []);
+
+/** Create a private league. The server returns it with its invite code. */
+export const createPrivateLeague = (tournamentId: number, name: string) =>
+  request<{ data: FantasyLeague }>(
+    `/fantasy/leagues/private`,
+    { method: "POST", body: JSON.stringify({ tournament_id: tournamentId, name }) },
+    true,
+  ).then((r) => r.data);
+
+/** Join a private league with its invite code (dashes/spaces/case don't matter). */
+export const joinPrivateLeague = (tournamentId: number, code: string) =>
+  request<{ data: FantasyLeague }>(
+    `/fantasy/leagues/join`,
+    { method: "POST", body: JSON.stringify({ tournament_id: tournamentId, code }) },
+    true,
+  ).then((r) => r.data);
+
+/** Leave a private league, given its slug ("private-<id>"). */
+export const leavePrivateLeague = (tournamentId: number, leagueSlug: string) =>
+  request<{ message: string }>(
+    `/fantasy/leagues/private/${encodeURIComponent(leagueSlug.replace(/^private-/, ""))}?tournament_id=${tournamentId}`,
+    { method: "DELETE" },
+    true,
+  );
+
+export const getFantasyTeamProfile = (fantasyTeamId: number, dayId?: number) =>
+  request<{ data: FantasyTeamProfile }>(
+    `/fantasy/teams/${fantasyTeamId}${dayId ? `?day_id=${dayId}` : ""}`,
+    {},
+    true, // optional on the server: lets the owner see their own picks before the deadline
+  ).then((r) => ({
+    ...r.data,
+    selections: r.data.selections ?? [],
+    breakdown: r.data.breakdown ?? [],
+  }));
 
 /* ---------- predictions ---------- */
 export const getPredictionStandings = (tournamentId: number, dayId?: number) =>
